@@ -8,14 +8,13 @@ Python version: 3.4
 #Prerequisite: image downloaded from web using bytes_bite
 import pymongo
 import numpy as np
-import cv2
 import bson
 from PIL import Image
 
-
+IMG_SIZE = 300
 db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
 
-def transform_img(img_array, size=600):
+def transform_img(img_array, size= IMG_SIZE):
     """
     returns list of eight transformations of img_array (all Pi/4 rotations & reflection)
         :param img_array:           list of lists representing square matrix
@@ -29,6 +28,51 @@ def transform_img(img_array, size=600):
     for i in range(0,8):
         img_transformed[i] = img_transformed[i].ravel()
     return img_transformed
+
+db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["transformedset"]
+
+def transform_db(db_train, db_trans, edgedetect=False, transform=True, emptytarget=True):
+    """
+    retrieves all pictures from train collection and inserts 8 transformation of each picture into target collection
+        :param db_train:    mongo db collection to retrieve original images from
+        :param db_trans:    mongo db collection to insert transformed images to
+    """
+    if emptytarget:
+        db_trans.drop()   #empty the target db
+    cursor = list(db_train.find())
+    if edgedetect:
+        import cv2
+    for one_image in cursor:
+        img_array = np.fromstring(one_image["image"], dtype='uint8')
+        if edgedetect:
+            img_array = cv2.Canny(img_array,150,200)
+        if transform:
+            transformed=transform_img(img_array.ravel())
+        else:
+            transformed=[img_array.ravel()]
+        for one_img in transformed:
+            image_byte = bson.binary.Binary(one_img.tostring())
+            doc = {"image": image_byte, 'class': one_image["class"]}
+            db_trans.insert_one(doc)
+    return [db_train.count(),db_trans.count()]
+
+#transform_db(db_train, db_trans)
+
+def db2np(db_trans, limit=None):
+    if (limit==None):
+        limit=db_trans.count()
+    cursor=db_trans.find().limit(limit=limit)
+    X=np.zeros(limit*IMG_SIZE*IMG_SIZE).reshape(limit,1,IMG_SIZE, IMG_SIZE)
+    y=np.zeros(limit)
+    i=0
+    for one_image in cursor:
+        img_array = np.fromstring(one_image["image"], dtype='uint8')
+        X[i,0,:,:] = img_array.reshape(IMG_SIZE, IMG_SIZE)
+        y[i]=int(one_image['class'])
+        i += 1
+    return X, y
+
+#X, y = db2np(db_trans)
 
 def transform_train(mongo_collection):
     """
@@ -55,7 +99,10 @@ def transform_train(mongo_collection):
     print('Current collection size is %d images (%d positive).' % (mongo_collection.count(), mongo_collection.find( { 'class': True } ).count()))
     return None
 
-def build_dataset(mongo_collection, patch_size=600, orig_size=600, nb_classes=2, edgedetect=True, transform=True):
+def build_dataset(mongo_collection, patch_size = IMG_SIZE, orig_size=IMG_SIZE, nb_classes=2, edgedetect=True, transform=True):
+    # depricated
+    if edgedetect:
+        import cv2
     from pybrain.datasets import SupervisedDataSet, ClassificationDataSet
     patch_size = min(patch_size, orig_size)
     trim = round((orig_size-patch_size)/2)
@@ -79,32 +126,12 @@ def build_dataset(mongo_collection, patch_size=600, orig_size=600, nb_classes=2,
     return ds
 
 #ds = build_dataset(db_train, transform=False)
-
-db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["transformedset"]
-
-def transform_db(db_train, db_trans, edgedetect=True, transform=True):
-    cursor = list(db_train.find())
-    for one_image in cursor:
-        img_array = np.fromstring(one_image["image"], dtype='uint8')
-        if edgedetect:
-            img_array = cv2.Canny(img_array,150,200)
-        if transform:
-            transformed=transform_img(img_array.ravel())
-        else:
-            transformed=[img_array.ravel()]
-        for one_img in transformed:
-            image_byte = bson.binary.Binary(one_img.tostring())
-            doc = {"image": image_byte, 'class': one_image["class"]}
-            db_trans.insert_one(doc)
-    return [db_train.count(),db_trans.count()]
-
-#transform_db(db_train, db_trans)
 #ds = build_dataset(db_trans, edgedetect=False, transform=False)
 
 if False:  # image prepocessing experimentation
     #blur = cv2.GaussianBlur(image_array,(5,5),0)
     edges = cv2.Canny(image_array,50,220)
-    img = Image.fromarray(edges.reshape(600, 600), 'L')
+    img = Image.fromarray(edges.reshape(IMG_SIZE, IMG_SIZE), 'L')
     img.save("images/edgemap.png")
     edges = cv2.Canny(image_array,150,200)
     img = Image.fromarray(edges[1:80,1:80], 'L')
@@ -113,13 +140,13 @@ if False:  # image prepocessing experimentation
     thresh = cv2.adaptiveThreshold(image_array,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
     ret, thresh = cv2.threshold(image_array,150,255,0)
     ret,thresh = cv2.threshold(image_array,127,255,cv2.THRESH_TOZERO)
-    img = Image.fromarray(thresh.reshape(600, 600), 'L')
+    img = Image.fromarray(thresh.reshape(IMG_SIZE, IMG_SIZE), 'L')
     img.save("images/threshmap.png")
 
     contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
-    temp=255*np.ones((600,600),dtype='uint8')
+    temp=255*np.ones((IMG_SIZE, IMG_SIZE),dtype='uint8')
     cv2.drawContours(temp, contours, -1, (0,255,0), 1)
-    img = Image.fromarray(temp.reshape(600, 600), 'L')
+    img = Image.fromarray(temp.reshape(IMG_SIZE, IMG_SIZE), 'L')
     img.save("images/tempmap.png")
 

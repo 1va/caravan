@@ -13,9 +13,10 @@ from PIL import Image
 from io import BytesIO
 import random
 
+IMG_SIZE = 300
 db = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
 
-def google_query(latitude,longitude, zoom_level=18):
+def google_query(latitude,longitude, zoom_level=18, img_size=IMG_SIZE):
     beginning = "https://maps.googleapis.com/maps/api/staticmap?"
     api_key = 'key=AIzaSyADEXfeHpcdEXfsEWF_F7iX5bKzVSnlkk8'
     longitude = round(longitude, 4)
@@ -24,12 +25,12 @@ def google_query(latitude,longitude, zoom_level=18):
     zoom = "zoom=%d" % zoom_level
     img_format = "format=png"
     map_type = "maptype=satellite"
-    img_size = "size=640x640"
-    return "&".join([beginning, center, zoom, img_format, map_type, img_size, api_key])
+    imag_size = 'size='+str(img_size+40)+'x'+ str(img_size+40)
+    return "&".join([beginning, center, zoom, img_format, map_type, imag_size, api_key])
 
 # define constant difference between grid points if using zoom_level=19
-DEFAULT_LAT_DIFFERENCE_AT_19 = 0.0010
-DEFAULT_LONG_DIFFERENCE_AT_19 = 0.0015
+DEFAULT_LAT_DIFFERENCE_AT_19 = 0.0008#0.0010
+DEFAULT_LONG_DIFFERENCE_AT_19 = 0.00010#0.0015
 
 ###########################################################
 def coord_box(coordinates, lat_diff=DEFAULT_LAT_DIFFERENCE_AT_19, long_diff=DEFAULT_LONG_DIFFERENCE_AT_19, size=1):
@@ -86,7 +87,7 @@ coast_areas = [[50.8962143,-1.3970956],
 random.seed(1234)
 random_areas = [[random.uniform(50.8484,52.0527), random.uniform(-2.75874, 0.4485376)]for i in range(20)]
 
-def download_list(lst, db, classification,zoom_level=18):
+def download_list(lst, db, classification,zoom_level=18, img_size=IMG_SIZE):
     for latitude, longitude in lst:
         one_point = google_query(latitude, longitude, zoom_level=zoom_level)
         file = urllib.urlopen(one_point)
@@ -94,9 +95,9 @@ def download_list(lst, db, classification,zoom_level=18):
         img = Image.open(b)
 
         img2 = img.convert('L') #why? -> unpack
-        img2.thumbnail((640, 640), Image.ANTIALIAS) # no need?
+        img2.thumbnail((img_size+40, img_size+40), Image.ANTIALIAS) # no need?
 
-        image_array = np.asarray(img2, dtype='uint8')[20:620,20:620].reshape(1,600**2)
+        image_array = np.asarray(img2, dtype='uint8')[20:(img_size+20),20:(img_size+20)].reshape(1,img_size**2)
         image_byte = bson.binary.Binary(image_array.tostring())
 
         doc = {"coordinates": [longitude, latitude],
@@ -108,9 +109,9 @@ def download_list(lst, db, classification,zoom_level=18):
 db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
 if False:
     db_train.remove()
-    download_list(coord_box(caravan_parks), db_train, classification=True, zoom_level=18)
+    download_list(coord_box(caravan_parks), db_train, classification=True, zoom_level=19)
     controls = coord_box(urban_areas + coast_areas + random_areas)
-    download_list(controls, db_train, classification=False, zoom_level=18)
+    download_list(controls, db_train, classification=False, zoom_level=19)
 
 if False:
     one_point = google_query(50.7677717,-0.8529036)
@@ -120,9 +121,9 @@ if False:
     img = Image.open(b)
 
     img2 = img.convert('L') #why? -> unpack
-    img2.thumbnail((640, 640), Image.ANTIALIAS) # no need?
+    img2.thumbnail((IMG_SIZE+40, IMG_SIZE+40), Image.ANTIALIAS) # no need?
 
-    image_array = np.asarray(img2, dtype='uint8')[20:620,20:620].reshape(1,600**2)
+    image_array = np.asarray(img2, dtype='uint8')[20:(IMG_SIZE+20),20:(IMG_SIZE+20)].reshape(1,IMG_SIZE**2)
     image_byte = bson.binary.Binary(image_array.tostring())
 
     doc = {"_id":'pokus', "image": image_byte}
@@ -130,6 +131,6 @@ if False:
     db.remove({"_id":'pokus'})
 
     one_image = db.find_one()
-    image_array = np.fromstring(one_image["image"], dtype='uint8').reshape(600, 600)
-    img = Image.fromarray(image_array.reshape(600, 600), 'L')
-    img.save("images/graymap.png")
+    image_array = np.fromstring(one_image["image"], dtype='uint8').reshape(IMG_SIZE, IMG_SIZE)
+    img = Image.fromarray(image_array.reshape(IMG_SIZE, IMG_SIZE), 'L')
+    img.save("images/graymap2.png")
