@@ -19,7 +19,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from lasagne_nnet.lasagne_net1 import *
+from lasagne_net1 import *
 
 
 # ############################# Batch iterator ###############################
@@ -49,10 +49,12 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
 # more functions to better separate the code, but it wouldn't make it any
 # easier to read.
 
-def main(num_epochs=500):
+num_batches=50
+
+def main(num_epochs=10):
     # Load the dataset
     print("Loading data...")
-    X_train, y_train, X_val, y_val, X_test, y_test = load_dataset()
+    X_train, y_train, X_val, y_val, X_test, y_test = load_dataset(limit=500,skip=800)
 
     # Prepare Theano variables for inputs and targets
     input_var = T.tensor4('inputs')
@@ -102,7 +104,7 @@ def main(num_epochs=500):
         train_err = 0
         train_batches = 0
         start_time = time.time()
-        for batch in iterate_minibatches(X_train, y_train, 500, shuffle=True):
+        for batch in iterate_minibatches(X_train, y_train, num_batches, shuffle=True):
             inputs, targets = batch
             train_err += train_fn(inputs, targets)
             train_batches += 1
@@ -111,7 +113,7 @@ def main(num_epochs=500):
         val_err = 0
         val_acc = 0
         val_batches = 0
-        for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
+        for batch in iterate_minibatches(X_val, y_val, num_batches, shuffle=False):
             inputs, targets = batch
             err, acc = val_fn(inputs, targets)
             val_err += err
@@ -130,7 +132,7 @@ def main(num_epochs=500):
     test_err = 0
     test_acc = 0
     test_batches = 0
-    for batch in iterate_minibatches(X_test, y_test, 500, shuffle=False):
+    for batch in iterate_minibatches(X_test, y_test, num_batches, shuffle=False):
         inputs, targets = batch
         err, acc = val_fn(inputs, targets)
         test_err += err

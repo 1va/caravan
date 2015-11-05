@@ -10,12 +10,27 @@ import lasagne   #lightweigh nnet in theano
 
 IMG_SIZE=300
 
-def load_dataset(limit=None):
-    from get_data.build_trainingset import db2np
+def db2np(db_trans, limit=None, skip=0):
+    import numpy as np
+    if (limit==None):
+        limit=db_trans.count()
+    cursor=db_trans.find().limit(limit=limit).skip(skip=skip)
+    X=np.zeros(limit*IMG_SIZE*IMG_SIZE).reshape(limit,1,IMG_SIZE, IMG_SIZE).astype(dtype='float32')
+    y=np.zeros(limit).astype(dtype='uint8')
+    i=0
+    for one_image in cursor:
+        img_array = np.fromstring(one_image["image"], dtype='uint8')
+        X[i,0,:,:] = img_array.reshape(IMG_SIZE, IMG_SIZE)/np.float32(256)
+        y[i]=int(one_image['class'])
+        i += 1
+    return X, y
+
+def load_dataset(limit=None, skip=0):
+    #from get_data.build_trainingset import db2np
     import pymongo
     from sklearn import cross_validation
     db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["transformedset"]
-    X, y = db2np(db_trans)
+    X, y = db2np(db_trans,limit=limit, skip=skip)
     sss = cross_validation.StratifiedShuffleSplit(y, n_iter=1, test_size=.2, random_state=3476)
     for train_index, test_index in sss:
         X_train = X[train_index]
@@ -56,13 +71,13 @@ def build_cnn(input_var=None):
     # A fully-connected layer of 256 units with 50% dropout on its inputs:
     network = lasagne.layers.DenseLayer(
             lasagne.layers.dropout(network, p=.5),
-            num_units=256,
+            num_units=56,
             nonlinearity=lasagne.nonlinearities.rectify)
 
     # And, finally, the 10-unit output layer with 50% dropout on its inputs:
     network = lasagne.layers.DenseLayer(
             lasagne.layers.dropout(network, p=.5),
-            num_units=10,
+            num_units=2,
             nonlinearity=lasagne.nonlinearities.softmax)
 
     return network
