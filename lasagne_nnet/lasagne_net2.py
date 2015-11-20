@@ -72,12 +72,13 @@ def build_cnn(input_var=None):
     network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
     print('MaxPool2DLayer shape:'+str(network.output_shape))
 
-    # A fully-connected layer of 256 units with 50% dropout on its inputs:
-    network = lasagne.layers.DenseLayer(
+    network = lasagne.layers.Conv2DLayer(
             lasagne.layers.dropout(network, p=.5),
-            num_units=256,
+            num_filters=32, filter_size=(55, 55),
             nonlinearity=lasagne.nonlinearities.rectify)
-    print('DenseLayer shape:'+str(network.output_shape))
+    print('Conv2DLayer shape:'+str(network.output_shape))
+    network = lasagne.layers.MaxPool2DLayer(network, pool_size=(2, 2))
+    print('MaxPool2DLayer shape:'+str(network.output_shape))
 
     # And, finally, the 10-unit output layer with 50% dropout on its inputs:
     network = lasagne.layers.DenseLayer(
@@ -89,4 +90,15 @@ def build_cnn(input_var=None):
     return network
 
 
+
 build_net = build_cnn
+
+'''
+    # A fully-connected layer of 256 units with 50% dropout on its inputs:
+    network = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(network, p=.5),
+            num_units=256,
+            nonlinearity=lasagne.nonlinearities.rectify)
+    print('DenseLayer shape:'+str(network.output_shape))
+
+'''

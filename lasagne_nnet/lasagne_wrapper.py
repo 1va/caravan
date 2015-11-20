@@ -19,7 +19,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from lasagne_net1 import *
+from lasagne_net2 import *
 
 
 # ############################# Batch iterator ###############################
@@ -49,12 +49,12 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
 # more functions to better separate the code, but it wouldn't make it any
 # easier to read.
 
-num_batches=50
+num_batches=100
 
-def main(num_epochs=10):
+def main(num_epochs=50):
     # Load the dataset
     print("Loading data...")
-    X_train, y_train, X_val, y_val, X_test, y_test = load_dataset(limit=500,skip=800)
+    X_train, y_train, X_val, y_val, X_test, y_test = load_dataset(limit=1500,skip=300)
 
     # Prepare Theano variables for inputs and targets
     input_var = T.tensor4('inputs')
@@ -100,6 +100,7 @@ def main(num_epochs=10):
     print("Starting training...")
     # We iterate over epochs:
     for epoch in range(num_epochs):
+        print(time.ctime())
         # In each epoch, we do a full pass over the training data:
         train_err = 0
         train_batches = 0
@@ -150,10 +151,28 @@ def main(num_epochs=10):
     # with np.load('model.npz') as f:
     #     param_values = [f['arr_%d' % i] for i in range(len(f.files))]
     # lasagne.layers.set_all_param_values(network, param_values)
+    return network
 
+
+def pickle_net(net, filename='net.pickle'):
+    import cPickle as pickle
+    import sys
+    sys.setrecursionlimit(10000)
+    with open( filename, 'wb') as f:
+        pickle.dump(net, f, -1)
+
+def unpickle_net(input_var=None,  filename='net.pickle'):
+    import cPickle as pickle
+    import sys
+    sys.setrecursionlimit(10000)
+    with open( filename, 'rb') as f:  # !
+        net = pickle.load(f)  # !
+    net.input_layer.input_layer.input_layer.input_layer.input_layer.input_layer.input_layer.input_layer.input_var = input_var
+    return net
 
 if __name__ == '__main__':
     kwargs = {}
     if len(sys.argv) > 1:
         kwargs['num_epochs'] = int(sys.argv[1])
-    main(**kwargs)
+    net = main(**kwargs)
+    pickle_net(net)
