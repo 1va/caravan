@@ -14,13 +14,13 @@ import pymongo
 from sklearn import cross_validation
 import tensorflow as tf
 
-datalimit=240 #2500
-dataskip=920
+datalimit=3500
+dataskip=0
 VALIDATION_SIZE = min(280,datalimit/4)  # Size of the validation set.
-BATCH_SIZE = 40
-NUM_EPOCHS = 2
+BATCH_SIZE = 64
+NUM_EPOCHS = 80
 IMAGE_SIZE = 300
-NUM_CHANNELS = 1
+NUM_CHANNELS = 3
 PIXEL_DEPTH = 255
 NUM_LABELS = 2
 SEED = 66478  # Set to None for random seed.
@@ -35,19 +35,19 @@ def db2np(db_trans, limit=None, skip=0):
     if (limit==None):
         limit=db_trans.count()
     cursor=db_trans.find().limit(limit=limit).skip(skip=skip)
-    X=np.zeros(limit*IMAGE_SIZE*IMAGE_SIZE).reshape(limit,IMAGE_SIZE, IMAGE_SIZE,1).astype(dtype='float32')
+    X=np.zeros(limit*IMAGE_SIZE*IMAGE_SIZE*NUM_CHANNELS).reshape(limit,IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS).astype(dtype='float32')
 
     y=np.zeros(limit).astype(dtype='uint8')
     i=0
     for one_image in cursor:
         img_array = np.fromstring(one_image["image"], dtype='uint8')
-        X[i,:,:,0] = img_array.reshape(IMAGE_SIZE, IMAGE_SIZE)/np.float32(PIXEL_DEPTH)-.5
+        X[i,:,:,:] = img_array.reshape(IMAGE_SIZE, IMAGE_SIZE,NUM_CHANNELS)/np.float32(PIXEL_DEPTH)-.5
         y[i]=int(one_image['class'])
         i += 1
     return X, (np.arange(NUM_LABELS) == y[:, None]).astype(np.float32)
 
 def load_dataset(limit=None, skip=0):
-    db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["transformedset"]
+    db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["tainingset"]
     X, y = db2np(db_trans,limit=limit, skip=skip)
     sss = cross_validation.StratifiedShuffleSplit(y[:,1], n_iter=1, test_size=VALIDATION_SIZE, random_state=SEED)
     for train_index, test_index in sss:
@@ -98,13 +98,13 @@ def main(argv=None):  # pylint: disable=unused-argument
                           stddev=0.1,
                           seed=SEED))
   conv1_biases = tf.Variable(tf.zeros([depth1]))
-  depth2=32
+  depth2=64
   conv2_weights = tf.Variable(
       tf.truncated_normal([5, 5, depth1, depth2],
                           stddev=0.1,
                           seed=SEED))
   conv2_biases = tf.Variable(tf.constant(0.1, shape=[depth2]))
-  depth3=128
+  depth3=256
   hidden2_size = ((IMAGE_SIZE-4)/2-4)/2
   fc1_weights = tf.Variable(  # fully connected, depth 512.
       tf.truncated_normal([hidden2_size**2 * depth2, depth3],
