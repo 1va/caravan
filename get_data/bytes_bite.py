@@ -16,7 +16,6 @@ import time
 
 IMG_SIZE = 300
 ZOOM_LEVEL = 17
-db = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
 
 def google_query(latitude,longitude, zoom_level=18, img_size=IMG_SIZE):
     beginning = "https://maps.googleapis.com/maps/api/staticmap?"
@@ -32,7 +31,7 @@ def google_query(latitude,longitude, zoom_level=18, img_size=IMG_SIZE):
 
 # define constant difference between grid points if using zoom_level=19
 DEFAULT_LAT_DIFFERENCE_AT_19 = 0.0008#0.0010
-DEFAULT_LONG_DIFFERENCE_AT_19 = 0.00010#0.0015
+DEFAULT_LONG_DIFFERENCE_AT_19 = 0.0010#0.0015
 
 ###########################################################
 def coord_box(coordinates, lat_diff=DEFAULT_LAT_DIFFERENCE_AT_19, long_diff=DEFAULT_LONG_DIFFERENCE_AT_19, size=1):
@@ -49,54 +48,14 @@ def coord_box(coordinates, lat_diff=DEFAULT_LAT_DIFFERENCE_AT_19, long_diff=DEFA
                 newcoord.append([coord[0]+i*lat_diff, coord[1]+j*long_diff])
     return newcoord
 
-caravan_parks = [[50.6259796,-2.2706743], #durdle door
-                 [50.689801,-2.3341522],  #warmwell
-                 [50.7523135,-2.0617302], #huntnick
-                 [50.7041072,-1.1035238], #nodes point
-                 [50.700116,-1.1138009], #st. helens
-                 [50.7963016,-0.9838095], #hayling island
-                 [50.7988633,-0.9804728], #oven campsite
-                 [50.7826322,-0.9472032], #eliots estate
-                 [50.7831533,-0.9574026], #fishery creek
-                 [50.9058588,-1.1627122], #rookesbury
-                 [51.0093301,-1.5739032], #hillfarm
-                 [50.9622607,-1.6225851], #greenhill
-                 [50.8515685,-1.2839778], # dybles SUSPICIOS
-                 [50.7358116,-1.5499394], # hurst view
-                 [50.8218972,-0.3123287] # beach park
-                ]
-
-urban_areas = [[50.9555502,-1.6420727],
-               [50.9171478,-1.4334934],
-               [50.9059521,-1.4211532],
-               [50.8137387,-1.0789],
-               [50.822926,-1.0513507],
-               [50.8471096,-1.2983196]
-              ]
-
-coast_areas = [[50.8962143,-1.3970956],
-               [50.832687,-1.369941],
-               [50.7848938,-1.3537767],
-               [50.7507503,-1.5300394],
-               [50.8192504,-0.3309942],
-               [50.825415,-0.294987]
-              ]
-zoopla_data = np.genfromtxt('get_data/park_homes_zoopla_3col.csv', delimiter=',', skip_header= True, dtype='float')
-zoopla_caravans = np.vstack({tuple(row) for row in zoopla_data[zoopla_data[:,2]==1,0:2]})
-zoopla_controls = np.vstack({tuple(row) for row in zoopla_data[zoopla_data[:,2]==0,0:2]})
-zoopla_controls_subset = zoopla_controls[[5*i for i in range(200*9)],:]
-
-random.seed(1234)
-random_areas = [[random.uniform(50.8484,52.0527), random.uniform(-2.75874, 0.4485376)]for i in range(20)]
-
 def download_list(lst, db, classification, zoom_level=ZOOM_LEVEL, img_size=IMG_SIZE):
     count = 0
     for latitude, longitude in lst:
         one_point = google_query(latitude, longitude, zoom_level=zoom_level)
-        file = urllib.urlopen(one_point)
-        b = BytesIO(file.read())
-        img = Image.open(b)
         try:
+           file = urllib.urlopen(one_point)
+           b = BytesIO(file.read())
+           img = Image.open(b)
            img2 = img.convert(mode= 'RGB')   # 'RGB' or 'L' (Luma transformation to black&white)
            #img2.thumbnail((img_size+40, img_size+40), Image.ANTIALIAS) # no need?
         except IOError as e:
@@ -116,10 +75,10 @@ def download_list(lst, db, classification, zoom_level=ZOOM_LEVEL, img_size=IMG_S
         count += 1
     return db.count()
 
-db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["tainingset"]
-
-caravans = coord_box(np.concatenate([np.array(caravan_parks), zoopla_caravans],axis=0))
-controls = np.concatenate([np.array(coord_box(urban_areas + coast_areas + random_areas)),zoopla_controls_subset], axis=0)
+db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
+#caravans = np.genfromtxt('get_data/GPS_5000caravans.csv', delimiter=',', skip_header= False, dtype='float')
+caravans = coord_box(np.genfromtxt('get_data/GPS_osm_568caravans.csv', delimiter=',', skip_header= False, dtype='float'))
+controls = np.genfromtxt('get_data/GPS_5000controls.csv', delimiter=',', skip_header= False, dtype='float')
 
 if False:
     db_train.drop()
@@ -128,6 +87,7 @@ if False:
     print(time.ctime())
     download_list(controls, db_train, classification=False, zoom_level=ZOOM_LEVEL)
     print(time.ctime())
+
 
 if False:
     one_point = google_query(50.7677717,-0.8529036)

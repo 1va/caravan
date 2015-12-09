@@ -3,7 +3,7 @@ import pymongo
 
 IMAGE_SIZE=300
 
-db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["tainingset"]
+db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
 n=db_train.count()
 cursor=db_train.find().limit(n)
 RGB_profile = np.zeros([n,256,3],dtype='uint16')
@@ -18,6 +18,11 @@ for one_image in cursor:
     y[i] = int(one_image['class'])
     coord[i,:] = one_image['coordinates']
     i += 1
+    if (i%100 ==0):
+            print('.'),
 
-data_matrix = np.concatenate([y.reshape([n,1]),RGB_profile.reshape(n,256*3)], axis=1)
+data_matrix = np.concatenate([RGB_profile.reshape(n,256*3)], axis=1)
 np.savetxt('RGB_profiles.csv', data_matrix,  fmt='%d', delimiter=', ')
+
+data_matrix = np.concatenate([y.reshape([n,1]),coord], axis=1)
+np.savetxt('RGB_coords.csv', data_matrix,  fmt='%.6f', delimiter=', ')
