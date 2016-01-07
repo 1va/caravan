@@ -75,12 +75,17 @@ def download_list(lst, db, classification, zoom_level=ZOOM_LEVEL, img_size=IMG_S
         count += 1
     return db.count()
 
-db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
-#caravans = np.genfromtxt('get_data/GPS_5000caravans.csv', delimiter=',', skip_header= False, dtype='float')
-caravans = coord_box(np.genfromtxt('get_data/GPS_osm_568caravans.csv', delimiter=',', skip_header= False, dtype='float'))
-controls = np.genfromtxt('get_data/GPS_5000controls.csv', delimiter=',', skip_header= False, dtype='float')
-
 if False:
+  db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
+#caravans = np.genfromtxt('coord_lists/GPS_5000caravans.csv', delimiter=',', skip_header= False, dtype='float')
+  caravans = coord_box(np.genfromtxt('coord_lists/GPS_osm_596caravans.csv', delimiter=',', skip_header= False, dtype='float'))
+  controls = np.genfromtxt('coord_lists/GPS_5000controls.csv', delimiter=',', skip_header= False, dtype='float')
+else:
+  db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_S"]
+  caravans = np.genfromtxt('coord_lists/GPS_osm_596caravans.csv', delimiter=',', skip_header= False, dtype='float')
+  controls = np.genfromtxt('coord_lists/GPS_5000controls.csv', delimiter=',', skip_header= False, dtype='float')[1:600,]
+
+if True:
     db_train.drop()
     print(time.ctime())
     download_list(caravans, db_train, classification=True, zoom_level=ZOOM_LEVEL)

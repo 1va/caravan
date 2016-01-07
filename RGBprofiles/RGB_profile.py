@@ -3,7 +3,7 @@ import pymongo
 
 IMAGE_SIZE=300
 
-db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
+db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_S"]
 n=db_train.count()
 cursor=db_train.find().limit(n)
 RGB_profile = np.zeros([n,256,3],dtype='uint16')

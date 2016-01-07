@@ -10,8 +10,8 @@ from lxml import etree
 
 from time import ctime
 #it takes 15min to parse england
-filelist=['cornwall','wales','england', 'scotland']
-i=3
+filelist=['cornwall','wales','england', 'scotland', 'ireland-and-northern-ireland']
+i=4
 
 A=np.zeros([0,2],dtype='float32')
 #for node in tree.getroot().getchildren():
@@ -28,12 +28,12 @@ for event, node in etree.iterparse('/home/bigdata/Downloads/'+filelist[i]+'-late
               #except :
               #   pass
 print(A.shape)
-np.savetxt('get_data/GPS_osm_'+filelist[i]+'.csv', A,  fmt='%.6f', delimiter=', ')
+np.savetxt('coord_lists/GPS_osm_'+filelist[i]+'.csv', A,  fmt='%.6f', delimiter=', ')
 print(ctime())
 
-for i in [1,2,3]:
-    A = np.concatenate((A,np.genfromtxt('get_data/GPS_osm_'+filelist[i]+'.csv', delimiter=',', skip_header= False, dtype='float')),axis=0)
+for i in [1,2,3,4]:
+    A = np.concatenate((A,np.genfromtxt('coord_lists/GPS_osm_'+filelist[i]+'.csv', delimiter=',', skip_header= False, dtype='float')),axis=0)
 
 
 
-np.savetxt('get_data/GPS_osm_568caravans.csv', A,  fmt='%.6f', delimiter=', ')
+np.savetxt('coord_lists/GPS_osm_596caravans.csv', A,  fmt='%.6f', delimiter=', ')

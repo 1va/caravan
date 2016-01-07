@@ -14,9 +14,9 @@ import pymongo
 from sklearn import cross_validation
 import tensorflow as tf
 
-datalimit=6000
-dataskip=2000
-VALIDATION_SIZE = min(400,datalimit/4)  # Size of the validation set.
+datalimit=None
+dataskip=0
+VALIDATION_SIZE = 150 #min(400,datalimit/4)  # Size of the validation set.
 BATCH_SIZE = 64
 NUM_EPOCHS = 80
 IMAGE_SIZE = 300
@@ -47,7 +47,7 @@ def db2np(db_trans, limit=None, skip=0):
     return X, (np.arange(NUM_LABELS) == y[:, None]).astype(np.float32)
 
 def load_dataset(limit=None, skip=0):
-    db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset"]
+    db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_S"]
     X, y = db2np(db_trans,limit=limit, skip=skip)
     sss = cross_validation.StratifiedShuffleSplit(y[:,1], n_iter=1, test_size=VALIDATION_SIZE, random_state=SEED)
     for train_index, test_index in sss:
