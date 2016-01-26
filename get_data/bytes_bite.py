@@ -20,8 +20,8 @@ ZOOM_LEVEL = 17
 def google_query(latitude,longitude, zoom_level=18, img_size=IMG_SIZE):
     beginning = "https://maps.googleapis.com/maps/api/staticmap?"
     api_key = 'key=AIzaSyADEXfeHpcdEXfsEWF_F7iX5bKzVSnlkk8'
-    longitude = round(longitude, 4)
-    latitude = round(latitude, 4)
+    longitude = round(longitude, 6)
+    latitude = round(latitude, 6)
     center = "center=" + str(latitude) + "," + str(longitude)
     zoom = "zoom=%d" % zoom_level
     img_format = "format=png"

@@ -19,7 +19,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from lasagne_net1 import *
+from lasagne_net_single import *
 
 
 # ############################# Batch iterator ###############################
