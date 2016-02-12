@@ -14,10 +14,10 @@ from io import BytesIO
 import random
 import time
 
-IMG_SIZE = 300
-ZOOM_LEVEL = 17
+IMG_SIZE = 600
+ZOOM_LEVEL = 18
 
-def google_query(latitude,longitude, zoom_level=18, img_size=IMG_SIZE):
+def google_query(latitude,longitude, zoom_level=ZOOM_LEVEL, img_size=IMG_SIZE):
     beginning = "https://maps.googleapis.com/maps/api/staticmap?"
     api_key = 'key=AIzaSyADEXfeHpcdEXfsEWF_F7iX5bKzVSnlkk8'
     longitude = round(longitude, 6)
@@ -81,7 +81,7 @@ if False:
   caravans = coord_box(np.genfromtxt('coord_lists/GPS_osm_596caravans.csv', delimiter=',', skip_header= False, dtype='float'))
   controls = np.genfromtxt('coord_lists/GPS_5000controls.csv', delimiter=',', skip_header= False, dtype='float')
 else:
-  db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_S"]
+  db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_L"]
   caravans = np.genfromtxt('coord_lists/GPS_osm_596caravans.csv', delimiter=',', skip_header= False, dtype='float')
   controls = np.genfromtxt('coord_lists/GPS_5000controls.csv', delimiter=',', skip_header= False, dtype='float')[1:600,]
 

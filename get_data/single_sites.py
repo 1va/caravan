@@ -11,19 +11,21 @@ import pymongo
 import numpy as np
 import bson
 from PIL import Image
-from bytes_bite import google_query
+#from bytes_bite import google_query
 import urllib2 as urllib
 from io import BytesIO
 
 
-ZOOM_LEVEL = 17
-IMG_SIZE = 300
-SINGLE_SIZE = 24/2
+ZOOM_LEVEL = 18
+IMG_SIZE = 600
+SINGLE_SIZE = 24#/2
 NUM_CHANNELS = 3
-db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_S"]
-db_single = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single"]
-#db_train.create_index( [( 'coordinates' , pymongo.GEOSPHERE )] )
+db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_L"]
+db_single = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single_L"]
+
 '''
+geoindexing:
+db_train.create_index( [( 'coordinates' , pymongo.GEOSPHERE )] )
 db.<collection>.find( { <location field> :
                          { $near :
                            { $geometry :
@@ -70,8 +72,8 @@ def db2np(lng, lat, db=False, db_train=db_train):
 
 def insert_singles(click, big_image, coordinates, classification, db_single=db_single, trans=False):
     for j in range(click.shape[0]):
-        x = click[j,0]
-        y = click[j,1]
+        x = IMG_SIZE-1-click[j,1]
+        y = click[j,0]
         if x>=SINGLE_SIZE and y>=SINGLE_SIZE and x<=(IMG_SIZE-SINGLE_SIZE) and y<=(IMG_SIZE-SINGLE_SIZE):
             new_image = big_image[(x-SINGLE_SIZE):(x+SINGLE_SIZE),(y-SINGLE_SIZE):(y+SINGLE_SIZE), :].reshape(1,((SINGLE_SIZE*2)**2)*3)
                           #np.asarray(img2, dtype='uint8')[20:(img_size+20),20:(img_size+20),:].reshape(1,(img_size**2)*3)
@@ -86,6 +88,7 @@ def insert_singles(click, big_image, coordinates, classification, db_single=db_s
                    "image": image_byte,
                    "class": classification}
                 db_single.insert_one(doc)
+                #print('.')
 
 def transform_img(img_array, size= SINGLE_SIZE*2):
     """
@@ -105,19 +108,19 @@ def transform_img(img_array, size= SINGLE_SIZE*2):
 
 
 db_single.drop()
-t=0
+
 for i in range(n):
     big_image = db2np(coords[onlyind[i],1], coords[onlyind[i],2])
-    click = np.genfromtxt(mypath+onlyfiles[i], delimiter=',', skip_header= True, dtype='uint16')
+    click = np.genfromtxt(mypath+onlyfiles[i], delimiter=',', skip_header= True, dtype='uint16')*2
     insert_singles(click, big_image, coordinates=[round(coords[onlyind[i],1],6), round(coords[onlyind[i],2],6)], classification = True, trans=True)
-    t+=click.shape[0]
+    print(db_single.count())
 
 print(db_single.count())
 
 shift=600
-click=np.array([[i*25,j*25] for i in range(1,8) for j in range(1,8)  ])
+click=np.array([[i*27,j*27] for i in range(1,9) for j in range(1,9)  ])
 for i in range(400):
-     big_image = db2np(coords[shift+i,1], coords[shift+i,2], db=True, db_train=db_train)
+     big_image = db2np(coords[shift+i,1], coords[shift+i,2], db=False, db_train=db_train)
      insert_singles(click, big_image, coordinates=[round(coords[shift+i,1],6), round(coords[shift+i,2],6)], classification = False)
 
 print(db_single.count())
@@ -143,3 +146,14 @@ for j in range(click.shape[0]):
 
 
 '''
+
+def export_images():
+  db_single = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single"]
+  cursor=db_single.find() #limit(limit=limit).skip(skip=skip)
+  i=0
+  one_image = db_single.find_one()
+  for one_image in cursor:
+      img_array = np.fromstring(one_image["image"], dtype='uint8').reshape(24*2, 24*2, 3)
+      img = Image.fromarray(img_array, 'RGB')
+      img.save("tmp_images/"+str(one_image['class'])+"/img"+str(i)+".png")
+      i+=1

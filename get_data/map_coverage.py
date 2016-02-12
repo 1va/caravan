@@ -78,26 +78,27 @@ def getCorners(center, zoom=10, mapWidth=600, mapHeight=600):
         'W' : SWLatLon.lng,
     }
 
-centerLat =50.7831533
-centerLon = -0.9574026
-centerPoint = G_LatLng(centerLat, centerLon)
-corners = getCorners(centerPoint, zoom=18,mapWidth=600, mapHeight=600)
-#corners = getCorners(centerPoint, zoom=17,mapWidth=300, mapHeight=300)
-LAT_DIFFERENCE = corners['N']-corners['S'] #0.0008#0.0010
-LONG_DIFFERENCE = corners['E']-corners['W'] #0.00010#0.0016
-print ('N-S LAT_DIFFERENCE : %.6f, E-W LONG_DIFFERENCE : %.6f ' %(LAT_DIFFERENCE ,LONG_DIFFERENCE ))
+def testrun():
+  centerLat =50.7831533
+  centerLon = -0.9574026
+  centerPoint = G_LatLng(centerLat, centerLon)
+  corners = getCorners(centerPoint, zoom=18,mapWidth=600, mapHeight=600)
+  #corners = getCorners(centerPoint, zoom=17,mapWidth=300, mapHeight=300)
+  LAT_DIFFERENCE = corners['N']-corners['S'] #0.0008#0.0010
+  LONG_DIFFERENCE = corners['E']-corners['W'] #0.00010#0.0016
+  print ('N-S LAT_DIFFERENCE : %.6f, E-W LONG_DIFFERENCE : %.6f ' %(LAT_DIFFERENCE ,LONG_DIFFERENCE ))
 
 
-England_LAT_DIFFERENCE = 5  # cca from 50.6 to 55.5
-England_LONG_DIFFERENCE = 6  # cca from -4.4 to 1.4
+  England_LAT_DIFFERENCE = 5  # cca from 50.6 to 55.5
+  England_LONG_DIFFERENCE = 6  # cca from -4.4 to 1.4
 
-day_limit= round(25000**.5)
-corners = getCorners(centerPoint, zoom=19, mapWidth=600*day_limit, mapHeight=600*day_limit)
-LAT_DIFFERENCE = corners['N']-corners['S'] #0.0008#0.0010
-LONG_DIFFERENCE = corners['E']-corners['W'] #0.00010#0.0016
-print ('N-S LAT_DIFFERENCE : %.6f, E-W LONG_DIFFERENCE : %.6f ' %(LAT_DIFFERENCE ,LONG_DIFFERENCE ))
-time_required = England_LAT_DIFFERENCE*England_LONG_DIFFERENCE/LAT_DIFFERENCE/LONG_DIFFERENCE
-print('Time required %.0f days.' % (time_required))
+  day_limit= round(25000**.5)
+  corners = getCorners(centerPoint, zoom=19, mapWidth=600*day_limit, mapHeight=600*day_limit)
+  LAT_DIFFERENCE = corners['N']-corners['S'] #0.0008#0.0010
+  LONG_DIFFERENCE = corners['E']-corners['W'] #0.00010#0.0016
+  print ('N-S LAT_DIFFERENCE : %.6f, E-W LONG_DIFFERENCE : %.6f ' %(LAT_DIFFERENCE ,LONG_DIFFERENCE ))
+  time_required = England_LAT_DIFFERENCE*England_LONG_DIFFERENCE/LAT_DIFFERENCE/LONG_DIFFERENCE
+  print('Time required %.0f days.' % (time_required))
 
 
 '''

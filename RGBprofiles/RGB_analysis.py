@@ -145,7 +145,7 @@ print_score(y_lsvm_pca, y)
 
 '''
 # Kernel Support vector machine
-svm = SVC(C=1, kernel='rbf', random_state=SEED, penalty='l1')
+svm = SVC(C=1, kernel='rbf', random_state=SEED)#, penalty='l1')
 y_svm_full = cross_val_predict(svm, X, y, cv=cv)
 y_svm_pca = cross_val_predict(svm, X_pca, y, cv=cv)
 print_score(y_svm_full, y)
