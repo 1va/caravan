@@ -13,17 +13,19 @@ import tensorflow as tf
 from bson import objectid
 from PIL import Image
 
+koef=1
 datalimit=None
 dataskip=0
-VALIDATION_SIZE = 4000 #min(400,datalimit/4)  # Size of the validation set.
+VALIDATION_SIZE = 1000 #min(400,datalimit/4)  # Size of the validation set.
 BATCH_SIZE = 512
 NUM_EPOCHS = 20
-IMAGE_SIZE = 24
+IMAGE_SIZE = 24*koef
 NUM_CHANNELS = 3
 PIXEL_DEPTH = 255
 NUM_LABELS = 2
-SEED = 6647#8  # Set to None for random seed.
-
+SEED = 66437#8  # Set to None for random seed.
+state= SEED
+db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single"]
 
 def db2np(db_trans, limit=None, skip=0):
     """
@@ -47,9 +49,8 @@ def db2np(db_trans, limit=None, skip=0):
     return X, (np.arange(NUM_LABELS) == y[:, None]).astype(np.float32), ids
 
 def load_dataset(limit=None, skip=0):
-    db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single"]
     X, y, ids = db2np(db_trans,limit=limit, skip=skip)
-    sss = cross_validation.StratifiedShuffleSplit(y[:,1], n_iter=1, test_size=VALIDATION_SIZE, random_state=SEED)
+    sss = cross_validation.StratifiedShuffleSplit(y[:,0], n_iter=1, test_size=VALIDATION_SIZE, random_state=SEED)
     for train_index, test_index in sss:
         X_train = X[train_index]
         y_train = y[train_index]
@@ -245,13 +246,7 @@ def main(argv=None):  # pylint: disable=unused-argument
               f1_score(validation_predictions, validation_labels)))
         print(accu_table(validation_predictions, validation_labels))
         sys.stdout.flush()
-    # Finally print the result!
-    test_predictions = test_prediction.eval()
 
-    print('Test error: %.1f%% and F1-score: %.1f%%' %
-          (error_rate(test_predictions, test_labels),
-           f1_score(test_predictions, test_labels)))
-    print(accu_table(test_predictions, test_labels))
     # Add ops to save and restore all the variables.
     saver = tf.train.Saver({'conv1_weights':conv1_weights, 'conv1_biases':conv1_biases,
                             'conv2_weights':conv2_weights, 'conv2_biases':conv2_biases,
@@ -260,6 +255,14 @@ def main(argv=None):  # pylint: disable=unused-argument
     # Save the variables to disk.
     save_path = saver.save(s, "net_single"+time.ctime()[3:10]+".ckpt")
     print ("Model saved in file: ", save_path)
+        # Finally print the result!
+    test_predictions = test_prediction.eval()
+
+    print('Test error: %.1f%% and F1-score: %.1f%%' %
+          (error_rate(test_predictions, test_labels),
+           f1_score(test_predictions, test_labels)))
+    print(accu_table(test_predictions, test_labels))
+
     export_wrong_images(test_predictions, test_labels, ids)
 
 

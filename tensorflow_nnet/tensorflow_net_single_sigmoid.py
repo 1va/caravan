@@ -13,17 +13,18 @@ import tensorflow as tf
 from bson import objectid
 from PIL import Image
 
+koef=2
 datalimit=None
 dataskip=0
 VALIDATION_SIZE = 1000 #min(400,datalimit/4)  # Size of the validation set.
 BATCH_SIZE = 512
 NUM_EPOCHS = 20
-IMAGE_SIZE = 24*2
+IMAGE_SIZE = 24*koef
 NUM_CHANNELS = 3
 PIXEL_DEPTH = 255
 NUM_LABELS = 1
 SEED = 6647#8  # Set to None for random seed.
-
+db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single_L"]
 
 def db2np(db_trans, limit=None, skip=0):
     """
@@ -47,7 +48,6 @@ def db2np(db_trans, limit=None, skip=0):
     return X, y[:, None].astype(np.float32), ids
 
 def load_dataset(limit=None, skip=0):
-    db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single_L"]
     X, y, ids = db2np(db_trans,limit=limit, skip=skip)
     sss = cross_validation.StratifiedShuffleSplit(y[:,0], n_iter=1, test_size=VALIDATION_SIZE, random_state=SEED)
     for train_index, test_index in sss:
@@ -73,7 +73,6 @@ def f1_score(predictions, labels, toplabel=1):
   return 2*precision*recall/(precision+recall+.01)*100
 
 def export_wrong_images(test_predictions, test_labels, ids):
-  db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single"]
   dif = np.argmax(test_predictions, 1) - np.argmax(test_labels, 1)
   for i in range(len(ids)):
       if dif[i]==1:

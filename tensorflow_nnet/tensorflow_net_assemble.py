@@ -14,14 +14,21 @@ from bson import objectid
 from PIL import Image
 
 #VALIDATION_SIZE = 300    # min(400,datalimit/4)  # Size of the validation set.
-BATCH_SIZE = 20
-NUM_EPOCHS = 30
-IMAGE_SIZE = 300
+koef=1
+ZOOM_LEVEL = 16+koef
+PIXELperLABEL = 4
+IMAGE_SIZE= 300*koef
+SINGLE_SIZE = 24*koef
+LABEL_SIZE = 1+ (IMAGE_SIZE-SINGLE_SIZE)/PIXELperLABEL  # = 1+69*koef
 NUM_CHANNELS = 3
 PIXEL_DEPTH = 255
-NUM_LABELS = 70*70
+NUM_LABELS = LABEL_SIZE**2
+
+NUM_EPOCHS = 30
+BATCH_SIZE = 20
 SEED = 6647#8  # Set to None for random seed.
 state=1
+filename= "net_sigmoid Feb 10.ckpt"
 
 
 def load_dataset():
@@ -63,8 +70,8 @@ def main(argv=None):  # pylint: disable=unused-argument
                           stddev=0.1,
                           seed=SEED))
   conv2_biases = tf.Variable(tf.constant(0.1, shape=[depth2]))
-  depth3=256
-  hidden2_size = 24/4  #((IMAGE_SIZE-4)/2-4)/2
+  depth3=256#*koef
+  hidden2_size = SINGLE_SIZE/4  #((IMAGE_SIZE-4)/2-4)/2
   fc1_weights = tf.Variable(  # fully connected, depth 512.    ! but input nodes kept in the shape of square !  for future assembly into larger image
       tf.truncated_normal([hidden2_size, hidden2_size, depth2, depth3],
                           stddev=0.1,
@@ -186,7 +193,7 @@ def main(argv=None):  # pylint: disable=unused-argument
                             'fc1_weights':fc1_weights, 'fc1_biases':fc1_biases,
                            'fc2_weights':fc2_weights_partial, 'fc2_biases':fc2_biases_partial})
       # Load pretrained parameters for single 24*24 patches.
-      saver.restore(s, "net_sigmoid Feb 10.ckpt")
+      saver.restore(s,filename)
       s.run(fc2_weights.assign(np.concatenate([fc2_weights_partial.eval(), fc2_weights_partial.eval(),fc2_weights_partial.eval(),fc2_weights_partial.eval()],3)))
       s.run(fc2_biases.assign(np.concatenate([fc2_biases_partial.eval(), fc2_biases_partial.eval(),fc2_biases_partial.eval(),fc2_biases_partial.eval()],0)))
       a = np.ones((5,5,4,1))/10
@@ -236,11 +243,11 @@ def main(argv=None):  # pylint: disable=unused-argument
                             'fc2_weights':fc2_weights, 'fc2_biases':fc2_biases,
                             'assembly_weights':assembly_weights, 'assembly_biases':assembly_biases})
     # Save the variables to disk.
-    save_path = saver.save(s, "net_assemble"+time.ctime()[3:10]+".ckpt")
+    save_path = saver.save(s, "net_assemble512"+time.ctime()[3:10]+".ckpt")
     print ("Model saved in file: ", save_path)
     test_predictions = test_prediction.eval()
     print(test_predictions.shape)
-    np.savetxt('tmp_images/assemble4.csv', test_predictions,  fmt='%.6f', delimiter=', ')
+    np.savetxt('tmp_images/assemble4_2.csv', test_predictions,  fmt='%.6f', delimiter=', ')
 
 if __name__ == '__main__':
   tf.app.run()

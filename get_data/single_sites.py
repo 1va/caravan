@@ -15,10 +15,10 @@ from PIL import Image
 import urllib2 as urllib
 from io import BytesIO
 
-
-ZOOM_LEVEL = 18
-IMG_SIZE = 600
-SINGLE_SIZE = 24#/2
+koef=2
+ZOOM_LEVEL = 16+koef
+IMG_SIZE = 300*koef
+SINGLE_SIZE = 24*koef
 NUM_CHANNELS = 3
 db_train = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_L"]
 db_single = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_single_L"]

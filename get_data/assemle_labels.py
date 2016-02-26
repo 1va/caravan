@@ -5,9 +5,11 @@ Date: 14. 10. 2015
 Python version: 3.4
 """
 
-IMG_SIZE = 300
-KERNEL_SIZE = 10
-LABEL_SIZE = 70
+koef=1
+IMG_SIZE = 300*koef
+SINGLE_SIZE = 24*koef
+KERNEL_SIZE = 10*koef
+LABEL_SIZE = IMG_SIZE/4+1-SINGLE_SIZE/4
 
 import numpy as np
 from scipy import signal
@@ -54,23 +56,25 @@ def heat_labels(click, mode='linear', img_size=IMG_SIZE, k_size=KERNEL_SIZE, lab
 
 labels =  np.zeros((n, LABEL_SIZE**2))
 for i in range(n):
-    click = np.genfromtxt(mypath+onlyfiles[i], delimiter=',', skip_header= True, dtype='uint16')
+    click = np.genfromtxt(mypath+onlyfiles[i], delimiter=',', skip_header= True, dtype='uint16')*koef
     labels[i,] = heat_labels(click).ravel()
 y = np.concatenate([labels, np.zeros((5, LABEL_SIZE**2)) ], axis=0)
-np.savetxt('tmp_images/assemble_y.csv', y,  fmt='%.6f', delimiter=', ')
+np.savetxt('tmp_images/assemble_y2.csv', y,  fmt='%.6f', delimiter=', ')
 
+#from get_data.bytes_bite import google_query
+#from get_data.single_sites import db2np
 def get_images(ind, coords):
-    #needs: google_query from butes_bite.py, db2np from single_sites.py
+    #needs: google_query from bytes_bite.py, db2np from single_sites.py
     images = np.zeros((len(ind),3*IMG_SIZE**2))
     for i in range(len(ind)):
          images[i,:] = db2np(coords[ind[i],1], coords[ind[i],2]).ravel()
-         print(ind[i])
+         #print(ind[i])  #print(i)
     return images
 
 ids = np.concatenate([onlyind, range(601, 606)])
-x = get_images(np.concatenate(ids, coords)
-z = np.concatenate([np.transpose([ids]),coords[ids,1:3]], axis=1 )
+x = get_images(ids, coords)
+z = np.concatenate([np.transpose([ids]),coords[ids,1:3]], axis=1)
 
-np.savetxt('tmp_images/assemble_x.csv', x,  fmt='%.6f', delimiter=', ')
-np.savetxt('tmp_images/assemble_y.csv', y,  fmt='%.6f', delimiter=', ')
+np.savetxt('tmp_images/assemble_x2.csv', x,  fmt='%.6f', delimiter=', ')
+np.savetxt('tmp_images/assemble_y2.csv', y,  fmt='%.6f', delimiter=', ')
 np.savetxt('tmp_images/assemble_ids.csv', z,  fmt='%.6f', delimiter=', ')

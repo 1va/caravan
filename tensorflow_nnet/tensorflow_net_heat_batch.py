@@ -8,9 +8,7 @@ import tensorflow as tf
 from PIL import Image
 import time
 
-
-datalimit=64
-dataskip=0
+BATCH_SIZE=64
 NET_FILE ="net_single Feb 25.ckpt"
 #NET_FILE ="net1 Feb  8.ckpt"
 
@@ -64,26 +62,30 @@ def get_one(lng, lat, db=False, db_train=None):
        img_array = np.asarray(img2, dtype='uint8')[20:(IMAGE_SIZE+20),20:(IMAGE_SIZE+20),:]
      return img_array.reshape(IMAGE_SIZE, IMAGE_SIZE, 3)
 
-def load_dataset(limit=64, db=False, coords=None):
+def load_dataset(limit=BATCH_SIZE, coords=None, db=False):
     if coords==None:
        coords = np.genfromtxt('tmp_images/assemble_ids.csv', delimiter=',', skip_header= False)[:,1:3]
     limit=min(limit, coords.shape[0])
     #db_trans = pymongo.MongoClient("192.168.0.99:30000")["google"]["trainingset_S"]
     X=np.zeros(limit*IMAGE_SIZE*IMAGE_SIZE*NUM_CHANNELS).reshape(limit,IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS).astype(dtype='float32')
     for i in range(limit):
-        X[i,:,:,:] = get_one(coords[i,0], coords[i,1], db=False)/np.float32(PIXEL_DEPTH)-.5
+        X[i,:,:,:] = get_one(coords[i,0], coords[i,1], db=db)/np.float32(PIXEL_DEPTH)-.5
     return X
 
-def main(csv=True, coords=None):  # pylint: disable=unused-argument
-  # Get the data.
-  print('%s: Loading data...' % time.ctime())
-  data = load_dataset(limit=datalimit, coords=coords)
+def main(csv=True, coords=None, gps=False):  # pylint: disable=unused-argument
+  if coords==None:
+       coords = np.genfromtxt('tmp_images/assemble_ids.csv', delimiter=',', skip_header= False)[:,1:3]
+  n = coords.shape[0]
+
   print('%s: Loading nnet...' % time.ctime())
-  #X = np.genfromtxt('tmp_images/assemble_x.csv', delimiter=',', skip_header= False).astype(dtype='float32')
-  #data = X.reshape(X.shape[0],IMAGE_SIZE, IMAGE_SIZE,NUM_CHANNELS)/np.float32(PIXEL_DEPTH)-.5
   # For the validation and test data, we'll just hold the entire dataset in
   # one constant node.
-  test_data_node = tf.constant(data)
+  #test_data_node = tf.constant(data)
+
+  test_data_node = tf.placeholder(
+      tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
+  test_data_node2 = tf.placeholder(
+      tf.float32, shape=(n%BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
   # The variables below hold all the trainable weights. They are passed an
   # initial value which will be assigned when when we call:
   # {tf.initialize_all_variables().run()}
@@ -179,13 +181,41 @@ def main(csv=True, coords=None):  # pylint: disable=unused-argument
                             'fc2_weights':fc2_weights, 'fc2_biases':fc2_biases})
     # Load pretrained parameters for single 24*24 patches.
     saver.restore(s, NET_FILE)
-    print('%s: Initialized!' % time.ctime())
-    test_predictions = np.array(model(test_data_node).eval()[:,:,1])
+    num_batches = np.floor(n/BATCH_SIZE).astype('int16')
+    print('%s: Initialized! (Loading data in %d minibatches))' % (time.ctime(), num_batches+1))
+    if gps:
+        from get_data.map_coverage import MercatorProjection, G_Point, G_LatLng
+        from get_data.labels_GPS import labels_GPS, labels_GPS_list, labels_suspect
+        suspect = np.zeros((0,2))
+    else:
+        suspect = np.zeros((0,LABEL_SIZE**2))
+    for step in range(num_batches):
+      offset = (step * BATCH_SIZE)
+      batch_data = load_dataset(coords=coords[offset:(offset + BATCH_SIZE), :])
+      feed_dict = {test_data_node: batch_data}
+      # Run the graph and fetch some of the nodes.
+      test_predictions = s.run([model(test_data_node)], feed_dict=feed_dict)
+      if gps:
+          suspect = np.concatenate([suspect, labels_GPS_list(labels= np.array(test_predictions[:,:,1]), coords=coords[offset:n, :], pixels= PIXELperLABEL, zoom=ZOOM_LEVEL)], axis=0 )
+      else:
+          suspect = np.concatenate([suspect, np.array(test_predictions[:,:,1])], axis=0)
+      print('.')
+    if n%BATCH_SIZE > 0 :
+      offset = num_batches * BATCH_SIZE
+      batch_data = load_dataset(coords=coords[offset:n, :])
+      feed_dict = {test_data_node2: batch_data}
+      # Run the graph and fetch some of the nodes.
+      test_predictions = s.run(model(test_data_node2), feed_dict=feed_dict)
+      if gps:
+          suspect = np.concatenate([suspect, labels_GPS_list(labels= np.array(test_predictions[:,:,1]), coords=coords[offset:n, :], pixels= PIXELperLABEL, zoom=ZOOM_LEVEL) ], axis=0 )
+      else:
+          suspect = np.concatenate([suspect, np.array(test_predictions[:,:,1])], axis=0)
+
     # Finally save the result!
-    print('%s: Result with %d rows and labels in  %d ^2 columns. ' % (time.ctime(), test_predictions.shape[0], np.sqrt(test_predictions.shape[1])))
+    print('%s: Result with %d rows and  %d columns. ' % (time.ctime(), suspect.shape[0], suspect.shape[1]))
     if csv:
-      np.savetxt('tmp_images/assemble1_3.csv', test_predictions,  fmt='%.6f', delimiter=', ')
-    else: return(test_predictions)
+      np.savetxt('tmp_images/assemble1_susp.csv', suspect,  fmt='%.6f', delimiter=', ')
+    else: return(suspect)
     #np.savetxt('tmp_images/ids.csv', data_matrix,  fmt='%.6f', delimiter=', ')
     s.close()
 
