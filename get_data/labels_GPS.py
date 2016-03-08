@@ -51,7 +51,7 @@ def labels_GPS(labels, center_gps, pixels = PIXELperLABEL, zoom = ZOOM_LEVEL):
     return np_gps
 
 
-def labels2(labels, coords, pixels = PIXELperLABEL, zoom = ZOOM_LEVEL):
+def labels_GPS_list(labels, coords, pixels = PIXELperLABEL, zoom = ZOOM_LEVEL):
     suspect = np.zeros((0,2))
     for j in range(coords.shape[0]):
         new_gps = labels_GPS(labels=labels[j,].reshape(LABEL_SIZE,LABEL_SIZE), center_gps= coords[j,:].ravel(), pixels = pixels, zoom = zoom)
